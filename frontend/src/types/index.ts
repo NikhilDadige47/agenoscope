@@ -9,6 +9,7 @@ export interface Workspace {
   owner_user_id: string;
   name: string;
   langsmith_project?: string | null;
+  langsmith_connected?: boolean;
   created_at: string;
 }
 
@@ -26,4 +27,30 @@ export interface ApiError {
     message: string;
     details?: any;
   };
+}
+
+export interface AgentRun {
+  id: string;
+  workspace_id: string;
+  source: 'langsmith' | 'sdk';
+  external_run_id?: string | null;
+  name?: string | null;
+  status: 'success' | 'error' | 'unknown';
+  error_message?: string | null;
+  latency_ms?: number | null;
+  total_tokens?: number | null;
+  raw_trace: Record<string, any>;
+  fetched_at: string;
+}
+
+export interface LangSmithStatus {
+  connected: boolean;
+  project?: string | null;
+  workspace_id: string;
+  message?: string | null;
+}
+
+export interface LangSmithConnectPayload {
+  langsmith_key: string;
+  project: string;
 }

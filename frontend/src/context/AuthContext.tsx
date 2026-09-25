@@ -11,6 +11,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, workspaceName?: string) => Promise<void>;
   logout: () => void;
+  refreshWorkspace: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -66,6 +67,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     saveAuthSession(data);
   };
 
+  const refreshWorkspace = async () => {
+    try {
+      const data = await api.getCurrentWorkspace();
+      setWorkspace(data);
+    } catch (err) {
+      console.error('Failed to refresh workspace', err);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -77,6 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         signup,
         logout,
+        refreshWorkspace,
       }}
     >
       {children}

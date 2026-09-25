@@ -77,4 +77,67 @@ export const api = {
     });
     return handleResponse<any>(res);
   },
+
+  async connectLangSmith(
+    workspaceId: string,
+    payload: { langsmith_key: string; project: string }
+  ): Promise<any> {
+    const res = await fetch(`${API_BASE}/workspaces/${workspaceId}/langsmith`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<any>(res);
+  },
+
+  async getLangSmithStatus(workspaceId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/workspaces/${workspaceId}/langsmith`, {
+      headers: {
+        ...getAuthHeader(),
+      },
+    });
+    return handleResponse<any>(res);
+  },
+
+  async disconnectLangSmith(workspaceId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/workspaces/${workspaceId}/langsmith`, {
+      method: 'DELETE',
+      headers: {
+        ...getAuthHeader(),
+      },
+    });
+    return handleResponse<any>(res);
+  },
+
+  async getRuns(
+    workspaceId: string,
+    options?: { status?: string; sync?: boolean }
+  ): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (options?.status && options.status !== 'all') {
+      params.append('status', options.status);
+    }
+    if (options?.sync !== undefined) {
+      params.append('sync', String(options.sync));
+    }
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_BASE}/workspaces/${workspaceId}/runs${queryString}`, {
+      headers: {
+        ...getAuthHeader(),
+      },
+    });
+    return handleResponse<any[]>(res);
+  },
+
+  async getRun(runId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/runs/${runId}`, {
+      headers: {
+        ...getAuthHeader(),
+      },
+    });
+    return handleResponse<any>(res);
+  },
 };

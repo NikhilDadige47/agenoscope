@@ -17,3 +17,8 @@ class Workspace(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     owner = relationship("User", back_populates="workspaces")
+    agent_runs = relationship("AgentRun", back_populates="workspace", cascade="all, delete-orphan")
+
+    @property
+    def langsmith_connected(self) -> bool:
+        return bool(self.langsmith_key_encrypted and self.langsmith_project)

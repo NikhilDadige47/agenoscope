@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Optional, Union
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import AnyHttpUrl, field_validator
 
@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    ENCRYPTION_KEY: Optional[str] = None
 
     # Default to local SQLite for simplicity in dev/testing, easily overridden by postgres in prod
     DATABASE_URL: str = "sqlite:///./agenoscope.db"
