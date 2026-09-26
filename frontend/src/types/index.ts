@@ -10,6 +10,7 @@ export interface Workspace {
   name: string;
   langsmith_project?: string | null;
   langsmith_connected?: boolean;
+  has_ingestion_token?: boolean;
   created_at: string;
 }
 
@@ -54,3 +55,15 @@ export interface LangSmithConnectPayload {
   langsmith_key: string;
   project: string;
 }
+
+export interface IngestionTokenStatus {
+  has_token: boolean;
+  workspace_id: string;
+}
+
+export interface IngestionTokenResponse {
+  token: string;
+  workspace_id: string;
+  message: string;
+}
+

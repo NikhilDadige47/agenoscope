@@ -69,3 +69,20 @@ def decode_token(token: str) -> Dict[str, Any]:
         algorithms=[settings.JWT_ALGORITHM],
         options={"require": ["exp", "sub"]}
     )
+
+
+def generate_ingestion_token() -> str:
+    """
+    Generate a high-entropy URL-safe ingestion token with agy_ingest_ prefix.
+    """
+    import secrets
+    return f"agy_ingest_{secrets.token_urlsafe(32)}"
+
+
+def hash_token(token: str) -> str:
+    """
+    Hash a token using SHA-256 for secure storage (NFR-001).
+    """
+    import hashlib
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+

@@ -22,3 +22,8 @@ class Workspace(Base):
     @property
     def langsmith_connected(self) -> bool:
         return bool(self.langsmith_key_encrypted and self.langsmith_project)
+
+    @property
+    def has_ingestion_token(self) -> bool:
+        return bool(self.ingestion_token_hash)
+

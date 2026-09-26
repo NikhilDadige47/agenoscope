@@ -140,4 +140,34 @@ export const api = {
     });
     return handleResponse<any>(res);
   },
+
+  async getIngestionTokenStatus(workspaceId: string): Promise<{ has_token: boolean; workspace_id: string }> {
+    const res = await fetch(`${API_BASE}/workspaces/${workspaceId}/ingestion-token`, {
+      headers: {
+        ...getAuthHeader(),
+      },
+    });
+    return handleResponse<{ has_token: boolean; workspace_id: string }>(res);
+  },
+
+  async generateIngestionToken(workspaceId: string): Promise<{ token: string; workspace_id: string; message: string }> {
+    const res = await fetch(`${API_BASE}/workspaces/${workspaceId}/ingestion-token`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeader(),
+      },
+    });
+    return handleResponse<{ token: string; workspace_id: string; message: string }>(res);
+  },
+
+  async revokeIngestionToken(workspaceId: string): Promise<{ message: string; workspace_id: string; has_token: boolean }> {
+    const res = await fetch(`${API_BASE}/workspaces/${workspaceId}/ingestion-token`, {
+      method: 'DELETE',
+      headers: {
+        ...getAuthHeader(),
+      },
+    });
+    return handleResponse<{ message: string; workspace_id: string; has_token: boolean }>(res);
+  },
 };
+

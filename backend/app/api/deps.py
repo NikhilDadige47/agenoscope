@@ -1,9 +1,9 @@
-from typing import Tuple
-from fastapi import Depends, status
+from typing import Tuple, Optional
+from fastapi import Depends, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.core.security import decode_token
+from app.core.security import decode_token, hash_token
 from app.core.errors import AppException
 from app.models.user import User
 from app.models.workspace import Workspace
@@ -74,3 +74,41 @@ def get_current_active_user_and_workspace(
     workspace: Workspace = Depends(get_current_workspace),
 ) -> Tuple[User, Workspace]:
     return current_user, workspace
+
+
+def get_workspace_from_ingestion_token(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> Workspace:
+    """
+    Authenticate an SDK/webhook ingestion request by hashing the supplied ingestion token
+    and matching against Workspace.ingestion_token_hash (REQ-004, NFR-001).
+    """
+    token = request.headers.get("x-ingestion-token") or request.headers.get("X-Ingestion-Token")
+    if not token:
+        auth_header = request.headers.get("authorization") or request.headers.get("Authorization")
+        if auth_header:
+            parts = auth_header.split()
+            if len(parts) == 2 and parts[0].lower() in ("bearer", "token", "ingestion"):
+                token = parts[1]
+            elif len(parts) == 1:
+                token = parts[0]
+
+    if not token:
+        raise AppException(
+            code="UNAUTHORIZED",
+            message="Ingestion token required in X-Ingestion-Token or Authorization header",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    token_hash = hash_token(token.strip())
+    workspace = db.query(Workspace).filter(Workspace.ingestion_token_hash == token_hash).first()
+    if not workspace:
+        raise AppException(
+            code="INVALID_INGESTION_TOKEN",
+            message="Invalid or revoked ingestion token",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    return workspace
+

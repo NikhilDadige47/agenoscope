@@ -34,6 +34,8 @@ def create_application() -> FastAPI:
 
     # Include API routers
     app.include_router(api_router, prefix=settings.API_V1_STR)
+    from app.api.v1.ingest import router as ingest_router
+    app.include_router(ingest_router, prefix="/ingest", tags=["ingest-root"])
 
     @app.get(f"{settings.API_V1_STR}/health", tags=["health"])
     def health_check():

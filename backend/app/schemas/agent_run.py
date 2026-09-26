@@ -27,3 +27,26 @@ class AgentRunListResponse(BaseModel):
     total: int
     langsmith_connected: bool = False
     project: Optional[str] = None
+
+
+class RunIngestRequest(BaseModel):
+    name: Optional[str] = "agent_run"
+    external_run_id: Optional[str] = None
+    status: Optional[str] = "unknown"
+    error_message: Optional[str] = None
+    latency_ms: Optional[float] = None
+    total_tokens: Optional[int] = None
+    raw_trace: Optional[Dict[str, Any]] = None
+
+    model_config = ConfigDict(extra="allow")
+
+
+class RunIngestResponse(BaseModel):
+    run_id: str
+    workspace_id: str
+    source: str = "sdk"
+    status: str
+    external_run_id: Optional[str] = None
+    is_duplicate: bool = False
+    message: str
+

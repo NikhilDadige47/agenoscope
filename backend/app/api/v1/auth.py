@@ -55,13 +55,10 @@ def signup(payload: SignupRequest, db: Session = Depends(get_db)):
         if payload.workspace_name and payload.workspace_name.strip()
         else f"{email_clean.split('@')[0]}'s Workspace"
     )
-    # Generate high entropy ingestion token hash for future SDK ingestion
-    default_ingestion_hash = get_password_hash(secrets.token_urlsafe(32))
-    
     workspace = Workspace(
         owner_user_id=user.id,
         name=default_ws_name,
-        ingestion_token_hash=default_ingestion_hash,
+        ingestion_token_hash=None,
     )
     db.add(workspace)
     db.commit()
@@ -99,7 +96,7 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
         workspace = Workspace(
             owner_user_id=user.id,
             name=f"{email_clean.split('@')[0]}'s Workspace",
-            ingestion_token_hash=get_password_hash(secrets.token_urlsafe(32)),
+            ingestion_token_hash=None,
         )
         db.add(workspace)
         db.commit()

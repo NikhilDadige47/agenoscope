@@ -6,10 +6,11 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.core.errors import AppException
 from app.core.encryption import encrypt_secret
+from app.core.security import generate_ingestion_token, hash_token
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.models.agent_run import AgentRun
-from app.schemas.workspace import WorkspaceResponse
+from app.schemas.workspace import WorkspaceResponse, IngestionTokenResponse, IngestionTokenStatus
 from app.schemas.langsmith import LangSmithConnectRequest, LangSmithStatusResponse
 from app.schemas.agent_run import AgentRunResponse
 from app.api.deps import get_current_user, get_current_workspace
@@ -223,3 +224,106 @@ async def list_workspace_runs(
 
     runs = query.order_by(AgentRun.fetched_at.desc()).all()
     return [AgentRunResponse.model_validate(r) for r in runs]
+
+
+@router.post("/{workspace_id}/ingestion-token", response_model=IngestionTokenResponse)
+def generate_or_rotate_ingestion_token(
+    workspace_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Generate or rotate the workspace's SDK/webhook ingestion token (REQ-004, NFR-001).
+    Stores only the SHA-256 hash in the database.
+    Returns the raw token once.
+    """
+    workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
+    if not workspace:
+        raise AppException(
+            code="WORKSPACE_NOT_FOUND",
+            message="Workspace not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+    if workspace.owner_user_id != current_user.id:
+        raise AppException(
+            code="FORBIDDEN",
+            message="You do not have access to this workspace",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    raw_token = generate_ingestion_token()
+    token_hash = hash_token(raw_token)
+
+    workspace.ingestion_token_hash = token_hash
+    db.commit()
+    db.refresh(workspace)
+
+    return IngestionTokenResponse(
+        token=raw_token,
+        workspace_id=workspace.id,
+        message="Ingestion token generated successfully. Copy and store this token securely now; it will not be displayed again.",
+    )
+
+
+@router.get("/{workspace_id}/ingestion-token", response_model=IngestionTokenStatus)
+def get_ingestion_token_status(
+    workspace_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Check if the workspace has an active ingestion token configured (REQ-004).
+    """
+    workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
+    if not workspace:
+        raise AppException(
+            code="WORKSPACE_NOT_FOUND",
+            message="Workspace not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+    if workspace.owner_user_id != current_user.id:
+        raise AppException(
+            code="FORBIDDEN",
+            message="You do not have access to this workspace",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    return IngestionTokenStatus(
+        has_token=bool(workspace.ingestion_token_hash),
+        workspace_id=workspace.id,
+    )
+
+
+@router.delete("/{workspace_id}/ingestion-token")
+def revoke_ingestion_token(
+    workspace_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Revoke the workspace's ingestion token (REQ-004).
+    """
+    workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
+    if not workspace:
+        raise AppException(
+            code="WORKSPACE_NOT_FOUND",
+            message="Workspace not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+    if workspace.owner_user_id != current_user.id:
+        raise AppException(
+            code="FORBIDDEN",
+            message="You do not have access to this workspace",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    workspace.ingestion_token_hash = None
+    db.commit()
+    db.refresh(workspace)
+
+    return {
+        "message": "Ingestion token revoked successfully",
+        "workspace_id": workspace.id,
+        "has_token": False,
+    }
+
